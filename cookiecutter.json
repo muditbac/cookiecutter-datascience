@@ -1,0 +1,12 @@
+{
+    "project_name": "My Project",
+    "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_') }}",
+    "project_author": "Mudit Bachhawat",
+    "project_version": "0.0",
+    "project_url": "https://muditbac.github.io",
+    "project_license": "MIT",
+    "project_email": "mudit5bachhawat@gmail.com",
+    "python_interpreter": "python3",
+    "aws_profile": "default",
+    "s3_bucket": "[OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')"
+}
