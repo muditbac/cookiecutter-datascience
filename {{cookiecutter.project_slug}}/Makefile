@@ -45,3 +45,13 @@ ifeq (default,$(PROFILE))
 else
 	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
 endif
+
+## Sacred infra up
+sacred_up:
+	mkdir -p data/mongodb
+	docker-compose -f docker/docker-compose.yml up
+
+## Sacred infra up
+sacred_down:
+	mkdir -p data/mongodb
+	docker-compose -f docker/docker-compose.yml down -v
