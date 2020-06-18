@@ -49,9 +49,9 @@ endif
 ## Sacred infra up
 sacred_up:
 	mkdir -p data/mongodb
-	docker-compose -f docker/docker-compose.yml up
+	cd docker && docker-compose up
 
 ## Sacred infra up
 sacred_down:
 	mkdir -p data/mongodb
-	docker-compose -f docker/docker-compose.yml down -v
+	cd docker && docker-compose down

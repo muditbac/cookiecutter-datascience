@@ -8,7 +8,7 @@ services:
       - 127.0.0.1:27017:27017
     restart: unless-stopped
     volumes:
-      - ./data/mongodb:/data/db
+      - ../data/mongodb:/data/db
     env_file: .env
 
   mongo-express:
