@@ -1,4 +1,4 @@
-.PHONY: clean lint requirements sync_data_to_s3 sync_data_from_s3 install uninstall
+.PHONY: clean lint requirements sync_data_to_s3 sync_data_from_s3 install uninstall sacred_down sacred_up sync
 
 
 BUCKET = {{cookiecutter.s3_bucket}}
@@ -55,3 +55,6 @@ sacred_up:
 sacred_down:
 	mkdir -p data/mongodb
 	cd docker && docker-compose down
+
+sync:
+	./scripts/sync.sh
