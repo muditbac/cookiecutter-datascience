@@ -5,7 +5,7 @@ from sacred.observers import MongoObserver, FileStorageObserver
 SETTINGS.DISCOVER_SOURCES = 'dir'
 
 
-def get_sacred_experiment(name, observer='mongo'):
+def get_sacred_experiment(name, observer='mongo', capture_output=True):
     ex = sacred.Experiment(name)
     if observer == 'mongo':
         ex.observers.append(MongoObserver(url='mongodb://{{cookiecutter.mongo_user}}:'
@@ -14,6 +14,8 @@ def get_sacred_experiment(name, observer='mongo'):
     else:
         ex.observers.append(FileStorageObserver('data/sacred/'))
 
+    if not capture_output:
+        SETTINGS.CAPTURE_MODE = 'no'
     return ex
 
 
