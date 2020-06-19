@@ -1,1 +1,4 @@
 sacred
+tensorboard
+tensorflow-gpu
+jupyterlab
