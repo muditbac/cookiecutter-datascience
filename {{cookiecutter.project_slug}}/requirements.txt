@@ -1,4 +1,6 @@
 sacred
+easydict
 tensorboard
-tensorflow-gpu
+tensorflow
+tensorflow-datasets
 jupyterlab
