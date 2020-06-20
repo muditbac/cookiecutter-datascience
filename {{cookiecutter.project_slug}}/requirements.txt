@@ -1,6 +1,7 @@
 sacred
 easydict
 tensorboard
-tensorflow
-tensorflow-datasets
+torch
+pytorch-lightning
+torchvision
 jupyterlab

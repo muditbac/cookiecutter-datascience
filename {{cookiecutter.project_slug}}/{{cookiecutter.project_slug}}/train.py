@@ -1,85 +1,88 @@
 import time
 
-import tensorflow as tf
+import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
 from easydict import EasyDict as edict
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.datasets import MNIST
 
-from . import net, metrics
-from .dataset import build_dataset
 from .utils import get_sacred_experiment
 
 ex = get_sacred_experiment('train_experiment', observer='file')
 
 
-class Trainer:
+class Model(pl.LightningModule):
 
-    def __init__(self, args, run, log):
-        args = edict(args)
+    def __init__(self):
+        super().__init__()
 
-        self.env_args = args.pop('env')
-        self.args = args
-        self.log = log
+        self.model = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, stride=2),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
 
-    def get_train_dataset(self):
-        return build_dataset(split='train', train=True)
+            nn.Conv2d(16, 32, kernel_size=3, stride=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
 
-    def get_validation_dataset(self):
-        return build_dataset(split='test', train=False)
+            nn.Conv2d(32, 64, kernel_size=3, stride=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
 
-    def get_model(self):
-        return getattr(net, self.args.model_name)(**self.args.model_params)
+            nn.AvgPool2d(2),
+            nn.Flatten(),
+            nn.Linear(64, 10)
+        )
 
-    def get_loss(self):
-        return getattr(metrics, self.args.loss_name)(**self.args.loss_params)
+    def forward(self, x):
+        return self.model(x)
 
-    def get_metrics(self):
-        return ['accuracy']
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+        logs = {'loss': loss}
+        return {'loss': loss, 'log': logs}
 
-    def get_callbacks(self):
-        model_key = '%s' % self.args.run_id
-        tensorboard_callback = tf.keras.callbacks.TensorBoard('data/logs/%s' % model_key,
-                                                              histogram_freq=0,
-                                                              write_graph=True,
-                                                              write_images=False,
-                                                              update_freq=2,
-                                                              profile_batch=0)  # https://github.com/tensorflow/tensorboard/issues/2911
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self(x)
+        loss = F.cross_entropy(y_hat, y)
+        logs = {'val_loss': loss}
+        return {'val_loss': loss, 'log': logs}
 
-        model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-            'data/checkpoints/%s/%s.epoch{epoch:02d}' % (model_key, model_key), monitor='loss')
+    def validation_epoch_end(self, outputs):
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        loss = {'avg_val_loss': avg_loss}
+        return {'log': loss}
 
-        callbacks = [tensorboard_callback, model_checkpoint_callback]
-        return callbacks
+    def train_dataloader(self):
+        dataset = MNIST('data/', train=True, download=True, transform=transforms.ToTensor())
+        return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=0, pin_memory=True)
 
-    def train(self):
-        train_ds = self.get_train_dataset()
-        val_ds = self.get_validation_dataset()
-        model = self.get_model()
-        model.compile(loss=self.get_loss(), metrics=self.get_metrics())
+    def val_dataloader(self):
+        dataset = MNIST('data/', train=False, download=True, transform=transforms.ToTensor())
+        return DataLoader(dataset, batch_size=32, shuffle=True, num_workers=0, pin_memory=True)
 
-        model.fit(train_ds, validation_data=val_ds, epochs=self.args.epochs, callbacks=self.get_callbacks())
+    def configure_optimizers(self):
+        return torch.optim.SGD(self.parameters(), lr=0.02)
 
 
 @ex.config
 def config():
-    model_name = 'build_model'
-    model_params = {}
-
-    loss_name = 'ce'
-    loss_params = {}
-
     env = edict()
 
     run_name = None
     run_id = f'{run_name}_{int(time.time())}'
 
-    epochs = 1
-
-
 @ex.main
 def main(_config, _log, _run):
-    _log.info(_run._id)
-    trainer = Trainer(_config, _run, _log)
-
-    trainer.train()
+    model = Model()
+    trainer = pl.Trainer(max_epochs=4, min_epochs=1)
+    trainer.fit(model)
 
 
 if __name__ == '__main__':
